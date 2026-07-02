@@ -39,7 +39,7 @@ The workspace is structured to parse lab requirements, run simulations, and comp
 ## ✨ Features
 
 *   **Beginner-Style Code Generation**: Octave scripts are written with simple, clear variables (e.g., `x1`, `yval`) without underscores, matching typical student coding styles.
-*   **One-Click Compilation**: The `run_all.sh` script executes all laboratory tasks sequentially and pipes outputs to log files.
+*   **One-Click Compilation**: The `generate_report.py` script executes all laboratory tasks sequentially, captures console logs, formats plots side-by-side, and compiles the final LaTeX report.
 *   **LaTeX Report Template**: A simple, compact `report.tex` template designed to look like a student's basic work:
     *   Uses narrow margins (`geometry`) to keep the page count minimal.
     *   Stamps name and roll number in a simple block at the top of the report.
@@ -54,18 +54,16 @@ The workspace is structured to parse lab requirements, run simulations, and comp
 
 ```bash
 .
+├── .env                # User config (ignored by git; holds STUDENT_NAME/ROLL/MATLAB_DIR)
+├── .env.example        # Environment template file
 ├── .gitignore          # Keeps your Git repository clean
 ├── README.md           # This document
 ├── workflow.md         # Implementation steps & guidelines
-├── run_all.sh          # Orchestrates Octave runs
-├── parta1.m            # Task A1: Sinusoid Experiments
-├── parta2.m            # Task A2: Impulse Train Construction
-├── parta3.m            # Task A3: Sinc Function Properties
-├── partb1.m            # Task B1: Convolution Lowpass Filter
-├── partc1.m            # Task C1: DTFT of a Sinusoid
-├── partc2.m            # Task C2: DTFT of a Rectangular Window
-├── report.tex          # LaTeX source template
-└── report.pdf          # Compiled final submission report
+├── generate_report.py  # Dynamically executes MATLAB scripts and generates LaTeX report
+└── src/                # Folder containing all MATLAB/Octave scripts
+    ├── parta1.m        # Task A1: Sinusoid Experiments
+    ├── parta2.m        # Task A2: Impulse Train Construction
+    └── ...             # Other lab tasks
 ```
 
 ---
@@ -73,25 +71,23 @@ The workspace is structured to parse lab requirements, run simulations, and comp
 ## 🚀 How to Run
 
 ### Prerequisites
-Make sure GNU Octave and pdfTeX are installed:
+Make sure GNU Octave, Python 3, and pdfTeX are installed:
 ```bash
-sudo apt install octave texlive-latex-extra
+sudo apt install octave python3 texlive-latex-extra
 ```
 
 ### Execution
-1. Run the simulation script to execute all tasks and generate plots:
+1. Place all your MATLAB/Octave `.m` scripts in the `src/` folder.
+2. Run the automation generator script:
    ```bash
-   bash run_all.sh
+   python3 generate_report.py
    ```
-2. Compile the report document:
-   ```bash
-   pdflatex report.tex && pdflatex report.tex
-   ```
+This will run each script, record the output logs, find any generated plots (`src/taskname*.png`), create a `report.tex` file, and compile it into a compact `report.pdf`.
 
 ---
 
 ## 🔄 Reusing for Next Labsheets
 To process a new lab sheet:
-1. Replace the `.m` files with the new scripts (keeping variable naming conventions simple).
-2. Update the filenames and paths inside `run_all.sh` and `report.tex`.
-3. Re-run the scripts and compile to get your new PDF report with the header intact!
+1. Clear old `.m` files in `src/` and paste the new ones.
+2. Run `python3 generate_report.py`.
+3. Your new `report.pdf` will be compiled immediately with your name and roll number.

@@ -23,40 +23,27 @@ This document outlines the systematic workflow for processing your markdown labs
     print('outputplot1.png', '-dpng', '-r300');
     ```
 
-## Step 4: Octave Execution & Verification
-*   Execute each script programmatically:
+## Step 4: Automated Compilation & Execution
+*   Instead of running individual steps manually, the Python script `generate_report.py` handles execution, capturing outputs, generating LaTeX, and compiling the PDF in one command:
     ```bash
-    octave --no-gui --quiet task_1.m > task_1_output.txt
+    python3 generate_report.py
     ```
-*   Verify output logs and ensure plots are rendered correctly without GUI popup requirements.
 
-## Step 5: LaTeX Formatting & Styling
-*   Write a simple LaTeX document (`labsheet_report.tex`) designed to look like a basic, space-efficient 1st-year BTech student report:
-    *   **Compact Margins**: Use `geometry` with narrow margins (e.g., `margin=0.5in`) to minimize page usage and pack code/plots tightly.
-    *   **Simple Identification**: Avoid professional page headers/footers. Instead, use a basic text block at the top of the report with the student's name and roll number.
-    *   **Side-by-Side Plots**: Put plot images side-by-side using `minipage` blocks to save space.
-    *   **Minimal Labeling**: Do not add figure numbers or verbose captions unless absolutely necessary; keep them simple or unlabelled to look like a student's quick output.
-    *   `listings`: For syntax highlighting the GNU Octave source code.
-    *   `graphicx`: For embedding generated plots.
-*   **Student Details Block**:
-    ```latex
-    \noindent \textbf{Name:} \studentname \hfill \textbf{Roll No:} \studentroll
-    \hrule
-    \vspace{0.2cm}
-    ```
-    *(Note: The name and roll number macro variables `\studentname` and `\studentroll` are defined by reading the `.env` variables dynamically during the document generation or compilation step.)*
+## Step 5: How the Automation Works
+1.  **Reads Configuration**: Loads the `.env` file to fetch `STUDENT_NAME`, `STUDENT_ROLL_NUMBER`, and `MATLAB_DIR` (default: `src`).
+2.  **Scans Matlab Files**: Scans the MATLAB directory for `.m` files, sorting them alphabetically.
+3.  **Executes in Octave**: For each `.m` file:
+    *   Runs `octave --no-gui --quiet <file.m>` inside the folder.
+    *   Pipes console outputs to `<file>_output.txt`.
+    *   Detects generated plots (any PNG files starting with the script's name, e.g., `parta1*.png`).
+4.  **Generates LaTeX (`report.tex`)**: 
+    *   Stamps Name and Roll Number in a simple block at the top of the report.
+    *   Uses narrow margins (`geometry` with `margin=0.5in`) to keep page usage minimal.
+    *   Includes source code using `listings` with small fonts (`\ttfamily\scriptsize`).
+    *   Embeds console outputs in a `verbatim` environment.
+    *   Positions plot images side-by-side using `minipage` blocks to save space, omitting verbose labels.
+5.  **Compiles Report**: Automatically compiles the report via `pdflatex` to output `report.pdf`.
 
-## Step 6: LaTeX Compilation
-*   Load environment variables from `.env` and compile the LaTeX report:
-    ```bash
-    # Load .env variables
-    export $(grep -v '^#' .env | xargs)
-    
-    # Compile the document (incorporating env vars)
-    pdflatex -interaction=nonstopmode labsheet_report.tex
-    ```
-*   Verify pagination, code wrapping, image alignment, and header formatting in the generated PDF.
-
-## Step 7: Delivery
-*   Provide the final compiled PDF.
-*   Provide the individual `.m` source files for backup.
+## Step 6: Verification & Delivery
+*   Check the generated `report.pdf` to verify that all MATLAB scripts ran successfully and that plots are formatted side-by-side.
+*   Deliver the compiled `report.pdf` and the individual MATLAB source files in the configured folder.
