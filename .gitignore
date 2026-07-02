@@ -4,6 +4,9 @@
 # Allow the gitignore file itself
 !.gitignore
 
+# Allow environment variables template
+!.env.example
+
 # Allow markdown documentation and labsheets
 !workflow.md
 

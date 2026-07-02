@@ -1,6 +1,6 @@
 # ⚡ DSP Lab Automation Engine
 
-A clean, reproducible workspace designed to automate the process of executing Digital Signal Processing (DSP) lab sheets, capturing graphical results, and compiling professional LaTeX reports with student credentials on every page.
+A clean, reproducible workspace designed to automate the process of executing Digital Signal Processing (DSP) lab sheets, capturing graphical results, and compiling a simple, compact 1st-year BTech student style LaTeX report with student credentials.
 
 ---
 
@@ -30,7 +30,7 @@ The workspace is structured to parse lab requirements, run simulations, and comp
                   └───────────┬────────────┘
                               ▼
                   ┌────────────────────────┐
-                  │    report.pdf (Output) │ ◄─── (Roll No in header of each page)
+                  │    report.pdf (Output) │ ◄─── (Simple compact student layout)
                   └────────────────────────┘
 ```
 
@@ -40,10 +40,12 @@ The workspace is structured to parse lab requirements, run simulations, and comp
 
 *   **Beginner-Style Code Generation**: Octave scripts are written with simple, clear variables (e.g., `x1`, `yval`) without underscores, matching typical student coding styles.
 *   **One-Click Compilation**: The `run_all.sh` script executes all laboratory tasks sequentially and pipes outputs to log files.
-*   **LaTeX Report Template**: A pre-configured `report.tex` template that uses:
-    *   `fancyhdr` to stamp the student's Roll Number (`23ECE283`) on the top-right corner of every page.
-    *   `listings` to import and highlight `.m` script files directly from the disk.
-    *   `graphicx` to embed and format high-resolution plots.
+*   **LaTeX Report Template**: A simple, compact `report.tex` template designed to look like a student's basic work:
+    *   Uses narrow margins (`geometry`) to keep the page count minimal.
+    *   Stamps name and roll number in a simple block at the top of the report.
+    *   Positions plot images side-by-side using `minipage` elements with minimal labels/captions to save maximum space.
+    *   Uses `listings` to import and highlight `.m` script files directly from the disk.
+    *   Uses `graphicx` to embed plots.
 *   **Clean Repository State**: A robust `.gitignore` isolates build logs, temporary auxiliary files, and plot images so that you can reuse the directory for subsequent labsheets without cluttering Git history.
 
 ---
