@@ -18,3 +18,10 @@
 !src/**/*.m
 
 !README.md
+!SKILL.md
+
+# Allow input and output directories and their gitkeeps
+!input/
+!input/.gitkeep
+!output/
+!output/.gitkeep

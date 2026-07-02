@@ -9,29 +9,33 @@ A clean, reproducible workspace designed to automate the process of executing Di
 The workspace is structured to parse lab requirements, run simulations, and compile reports with zero manual formatting residue:
 
 ```
-                  ┌────────────────────────┐
-                  │   Labsheet_X.md (Input) │
-                  └───────────┬────────────┘
-                              ▼
-                  ┌────────────────────────┐
-                  │    Octave Scripts      │ ◄─── (Beginner-style, no underscores)
-                  └───────────┬────────────┘
-                              ▼
-        ┌─────────────────────┴─────────────────────┐
-        ▼                                           ▼
-┌───────────────┐                           ┌───────────────┐
-│  PNG Plots    │                           │ Console Logs  │
-└───────┬───────┘                           └───────┬───────┘
-        │                                           │
-        └─────────────────────┬─────────────────────┘
-                              ▼
-                  ┌────────────────────────┐
-                  │    report.tex (LaTeX)  │ ◄─── (Pulls code & outputs inline)
-                  └───────────┬────────────┘
-                              ▼
-                  ┌────────────────────────┐
-                  │    report.pdf (Output) │ ◄─── (Simple compact student layout)
-                  └────────────────────────┘
+                      ┌────────────────────────┐
+                      │  input/labsheet.pdf    │ (Raw Input)
+                      └───────────┬────────────┘
+                                  ▼ [markitdown]
+                      ┌────────────────────────┐
+                      │  input/labsheet.md     │ (Converted)
+                      └───────────┬────────────┘
+                                  ▼
+                      ┌────────────────────────┐
+                      │    Octave Scripts      │ ◄─── (Written inside src/)
+                      └───────────┬────────────┘
+                                  ▼
+            ┌─────────────────────┴─────────────────────┐
+            ▼                                           ▼
+    ┌───────────────┐                           ┌───────────────┐
+    │  src/*.png    │ (Plots)                   │  src/*.txt    │ (Console Logs)
+    └───────┬───────┘                           └───────┬───────┘
+            │                                           │
+            └─────────────────────┬─────────────────────┘
+                                  ▼
+                      ┌────────────────────────┐
+                      │  output/report.tex     │ ◄─── (LaTeX)
+                      └───────────┬────────────┘
+                                  ▼
+                      ┌────────────────────────┐
+                      │  output/report.pdf     │ ◄─── (Compiled PDF)
+                      └────────────────────────┘
 ```
 
 ---
@@ -54,15 +58,19 @@ The workspace is structured to parse lab requirements, run simulations, and comp
 
 ```bash
 .
-├── .env                # User config (ignored by git; holds STUDENT_NAME/ROLL/MATLAB_DIR)
+├── .env                # User config (STUDENT_NAME/ROLL/MATLAB_DIR/INPUT_DIR/OUTPUT_DIR)
 ├── .env.example        # Environment template file
 ├── .gitignore          # Keeps your Git repository clean
 ├── README.md           # This document
 ├── workflow.md         # Implementation steps & guidelines
+├── SKILL.md            # LLM assistant instructions and rules
 ├── generate_report.py  # Dynamically executes MATLAB scripts and generates LaTeX report
+├── input/              # Raw labsheet inputs and converted markdown files
+│   └── .gitkeep        # Tracks directory in git
+├── output/             # Output LaTeX reports and compiled PDFs
+│   └── .gitkeep        # Tracks directory in git
 └── src/                # Folder containing all MATLAB/Octave scripts
-    ├── parta1.m        # Task A1: Sinusoid Experiments
-    ├── parta2.m        # Task A2: Impulse Train Construction
+    ├── example.m       # Example task script
     └── ...             # Other lab tasks
 ```
 
@@ -71,23 +79,31 @@ The workspace is structured to parse lab requirements, run simulations, and comp
 ## 🚀 How to Run
 
 ### Prerequisites
-Make sure GNU Octave, Python 3, and pdfTeX are installed:
+Make sure GNU Octave, Python 3, pdfTeX, and Microsoft MarkItDown are installed:
 ```bash
 sudo apt install octave python3 texlive-latex-extra
+pip install markitdown
 ```
 
 ### Execution
-1. Place all your MATLAB/Octave `.m` scripts in the `src/` folder.
-2. Run the automation generator script:
+1. Place your raw labsheet file (e.g. `labsheet.pdf`) inside the `input/` folder.
+2. Convert it to markdown using `markitdown`:
+   ```bash
+   markitdown input/labsheet.pdf -o input/labsheet.md
+   ```
+3. Read the converted `input/labsheet.md` and write the corresponding MATLAB/Octave `.m` scripts in the `src/` folder.
+4. Run the automation generator script:
    ```bash
    python3 generate_report.py
    ```
-This will run each script, record the output logs, find any generated plots (`src/taskname*.png`), create a `report.tex` file, and compile it into a compact `report.pdf`.
+This will run each script in `src/`, record the output logs, locate any generated plots (`src/taskname*.png`), create `output/report.tex`, and compile it into the final compact report `output/report.pdf`.
 
 ---
 
 ## 🔄 Reusing for Next Labsheets
 To process a new lab sheet:
-1. Clear old `.m` files in `src/` and paste the new ones.
-2. Run `python3 generate_report.py`.
-3. Your new `report.pdf` will be compiled immediately with your name and roll number.
+1. Place the new labsheet in `input/` and convert it using `markitdown`.
+2. Clear old `.m` files in `src/` and paste/write the new ones.
+3. Run `python3 generate_report.py`.
+4. Your new `output/report.pdf` will be compiled immediately with your name and roll number.
+

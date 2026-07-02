@@ -23,9 +23,14 @@ def main():
     student_name = env.get('STUDENT_NAME', 'Student Name')
     student_roll = env.get('STUDENT_ROLL_NUMBER', 'Roll Number')
     matlab_dir = env.get('MATLAB_DIR', 'src')
+    output_dir = env.get('OUTPUT_DIR', 'output')
 
     print(f"Loading files from: {matlab_dir}")
+    print(f"Saving outputs to: {output_dir}")
     print(f"Student: {student_name} ({student_roll})")
+
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
     if not os.path.exists(matlab_dir):
         print(f"Error: Directory '{matlab_dir}' does not exist.")
@@ -197,26 +202,27 @@ def main():
 
     tex_content.append(r"\end{document}")
 
-    with open("report.tex", "w") as f:
+    tex_path = os.path.join(output_dir, "report.tex")
+    with open(tex_path, "w") as f:
         f.write("\n".join(tex_content))
-    print("Created report.tex successfully.")
+    print(f"Created {tex_path} successfully.")
 
     # Compile LaTeX report
-    print("\nCompiling report.tex to PDF...")
+    print(f"\nCompiling {tex_path} to PDF...")
     try:
         # Run pdflatex twice for reference resolving (if any)
         for _ in range(2):
             subprocess.run(
-                ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+                ["pdflatex", "-interaction=nonstopmode", f"-output-directory={output_dir}", tex_path],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 check=True
             )
-        print("Compiled report.pdf successfully!")
+        print(f"Compiled report.pdf inside {output_dir} successfully!")
         
-        # Clean build files
+        # Clean build files in output directory
         for ext in ["aux", "log", "out"]:
-            for f in glob.glob(f"report.{ext}"):
+            for f in glob.glob(os.path.join(output_dir, f"report.{ext}")):
                 try:
                     os.remove(f)
                 except Exception:
