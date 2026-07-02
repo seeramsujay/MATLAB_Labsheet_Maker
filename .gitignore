@@ -1,0 +1,22 @@
+# Ignore labsheets (both uppercase and lowercase naming)
+*Labsheet*.md
+*labsheet*.md
+
+# Ignore Octave/MATLAB source code scripts
+*.m
+
+# Ignore generated plot figures
+*.png
+
+# Ignore console outputs and logs from the runs
+*output.txt
+
+# Ignore LaTeX report files and PDF binaries
+report.tex
+report.pdf
+
+# Ignore LaTeX compilation intermediate logs and artifacts
+*.aux
+*.log
+*.out
+*.toc
