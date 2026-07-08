@@ -85,18 +85,32 @@ OUTPUT_DIR="output"
 ```
 
 ### Step B: Run Compilation Script
-Execute the compilation script to process all scripts in `src/`, capture console outputs, generate the LaTeX report, and compile the final PDF into the `output/` directory:
+Execute the compilation script to compile the PDF into the `output/` directory:
 ```bash
-python3 generate_report.py
+python3 generate_report.py [options]
 ```
 
+#### Available CLI Options:
+*   `--skip-run`, `-s`: Skips executing the MATLAB/Octave scripts. Instead, it reads existing manual output text files and links manually provided screenshots directly.
+*   `--inference <path>`, `-i <path>`: Specifies a custom path to the inference text file (defaults to looking for `inference.txt` in the root, `src/`, or `input/` directory).
+
+#### Manual Screenshot & Output File Matching:
+If using `--skip-run` or manually providing screenshots/console outputs:
+*   **Standard matching**: Files starting with the script name (e.g. `LS1_01_plot.png` for `LS1_01.m`).
+*   **Numbered matching**: For scripts matching the pattern `LS<labsheet>_<question>` (e.g. `LS1_01.m`), screenshots can be named like `<labsheet>.<question>.png` (e.g. `1.1.png`, `1.1_2.png`, etc.) or `<labsheet>_<question>.png` and can be placed in either `input/` or `src/` directory.
+
+#### Inferences Integration (`inference.txt`):
+You can place an `inference.txt` file in the root, `src/`, or `input/` directory. 
+*   **Task-Specific Inferences**: Define task-specific inferences using headers matching the task name (e.g. `[LS1_01]`, `LS1_01:`, `[1.1]`, `1.1:`, `Task 1:`). These are placed directly at the bottom of the corresponding task inside the report. Alternatively, you can use separate files named like `<task>_inference.txt` (e.g., `LS1_01_inference.txt`).
+*   **Global Inference**: Text at the top of the file (before any headers) or under headers like `[Overall]`, `[General]`, or `[Global]` will be appended as a main "Inference" section at the end of the entire report.
+
 ### What the compiler does behind the scenes:
-1. Scans the configured `MATLAB_DIR` (default: `src`) directory for `.m` files alphabetically.
-2. Runs each script via GNU Octave in quiet, non-GUI mode: `octave --no-gui --quiet <file.m>`.
-3. Pipes command-line outputs to `<file>_output.txt`.
-4. Detects any generated PNG files that start with the script's base name.
-5. Auto-generates `report.tex` inside the configured `OUTPUT_DIR` (default: `output`) using narrow margins, embedding the source code via listings (`\ttfamily\scriptsize`), piping console outputs in `verbatim`, and positioning plots side-by-side using `minipage` blocks.
-6. Compiles the document to `report.pdf` inside `output/` using `pdflatex` (runs twice to resolve references) and cleans up auxiliary files in the output folder.
+1. Scans the configured `MATLAB_DIR` (default: `src`) directory for `.m` files, sorted naturally.
+2. If `--skip-run` is not enabled, runs each script via GNU Octave in quiet, non-GUI mode and pipes command-line outputs to `<file>_output.txt`. If `--skip-run` is enabled, checks for existing `<file>_output.txt` or `<l>.<q>_output.txt`.
+3. Detects any generated/manual plots/screenshots (checking both standard base names and `<labsheet>.<question>` formats).
+4. Matches and reads task-specific and overall inferences from `inference.txt` or dedicated files.
+5. Auto-generates `report.tex` inside the configured `OUTPUT_DIR` (default: `output`) using narrow margins, embedding the source code, output snippets, plots side-by-side, and formatting inferences.
+6. Compiles the document to `report.pdf` inside `output/` using `pdflatex` (runs twice) and cleans up auxiliary files.
 
 ---
 

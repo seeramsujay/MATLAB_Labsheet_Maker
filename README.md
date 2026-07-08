@@ -96,7 +96,11 @@ pip install markitdown
    ```bash
    python3 generate_report.py
    ```
-This will run each script in `src/`, record the output logs, locate any generated plots (`src/taskname*.png`), create `output/report.tex`, and compile it into the final compact report `output/report.pdf`.
+   *Note: If you have already executed the scripts and manually placed screenshots (e.g. `1.1.png` for `LS1_01.m` and an optional `inference.txt`), run with the `--skip-run` (or `-s`) flag to compile the report directly without running Octave:*
+   ```bash
+   python3 generate_report.py --skip-run
+   ```
+This will run/skip scripts in `src/`, compile console logs, associate manual/generated screenshots, attach inferences from `inference.txt`, create `output/report.tex`, and compile the final PDF.
 
 ---
 

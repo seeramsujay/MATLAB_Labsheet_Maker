@@ -37,7 +37,13 @@ Run the automation script:
 python3 generate_report.py
 ```
 
-This executes all scripts in `src/` via Octave, captures console output, discovers plots, generates `output/report.tex`, and compiles `output/report.pdf`.
+*Note: If manually providing screenshots (e.g. `1.1.png` for `LS1_01.m`) and using an `inference.txt` file, run with skip-run enabled:*
+
+```bash
+python3 generate_report.py --skip-run
+```
+
+This compiles all MATLAB source files in `src/`, maps manual/generated screenshots, parses inferences, generates `output/report.tex`, and compiles the final report PDF.
 
 ---
 
