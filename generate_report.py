@@ -119,6 +119,7 @@ def main():
     tex_content.append(r"\usepackage{xcolor}")
     tex_content.append(r"\usepackage{float}")
     tex_content.append(r"\usepackage{microtype}")
+    tex_content.append(r"\raggedbottom")
     
     # Simple lstlisting style for beginner student look
     tex_content.append(r"\lstset{")
@@ -141,16 +142,16 @@ def main():
     tex_content.append(r"\begin{center}")
     tex_content.append(r"    \subsection*{DSP Laboratory Report}")
     tex_content.append(r"\end{center}")
-    tex_content.append(r"\vspace{-0.4cm}")
+    tex_content.append(r"\vspace{-0.2cm}")
 
     for sec in sections_data:
-        tex_content.append(f"\\subsection*{{Task: {sec['name']}}}")
+        tex_content.append(f"\\subsection*{{Task: {latex_escape(sec['name'])}}}")
         tex_content.append(r"\vspace{-0.1cm}")
         
         # Include code
         tex_content.append(r"\noindent\textbf{Source Code:}")
         tex_content.append(f"\\lstinputlisting{{{matlab_dir}/{sec['m_file']}}}")
-        tex_content.append(r"\vspace{-0.1cm}")
+        tex_content.append(r"\vspace{-0.3cm}")
 
         # Code output and plots block
         if sec['has_output'] or sec['plots']:
@@ -169,7 +170,7 @@ def main():
                     else:
                         tex_content.append("".join(lines))
                 tex_content.append(r"\end{verbatim}")
-                tex_content.append(r"\vspace{-0.1cm}")
+                tex_content.append(r"\vspace{-0.2cm}")
 
             # Show plots side-by-side to save space
             if sec['plots']:
@@ -179,26 +180,23 @@ def main():
                 
                 num_plots = len(sec['plots'])
                 if num_plots == 1:
-                    # Single plot, relatively compact
-                    tex_content.append(f"    \\includegraphics[width=0.55\\textwidth]{{{matlab_dir}/{sec['plots'][0]}}}")
+                    # Single plot
+                    tex_content.append(f"    \\includegraphics[width=0.65\\textwidth]{{{matlab_dir}/{sec['plots'][0]}}}")
                 else:
                     # Side-by-side plots (2 per row)
-                    for i, plot_file in enumerate(sec['plots']):
+                    for j, plot_file in enumerate(sec['plots']):
                         tex_content.append(f"    \\begin{{minipage}}[b]{{0.48\\textwidth}}")
                         tex_content.append(f"        \\centering")
                         tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{matlab_dir}/{plot_file}}}")
-                        # Minimal or no labeling as requested
                         tex_content.append(f"    \\end{{minipage}}")
-                        if i % 2 == 1 and i < num_plots - 1:
-                            tex_content.append(r"    \\") # newline for next row
-                        elif i < num_plots - 1:
+                        if j % 2 == 1 and j < num_plots - 1:
+                            tex_content.append(r"    \\")
+                        elif j < num_plots - 1:
                             tex_content.append(r"\hfill")
                 
                 tex_content.append(r"\end{figure}")
-                tex_content.append(r"\vspace{-0.2cm}")
         
         tex_content.append(r"\hrule")
-        tex_content.append(r"\vspace{0.1cm}")
 
     tex_content.append(r"\end{document}")
 
