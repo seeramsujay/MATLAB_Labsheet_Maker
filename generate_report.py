@@ -5,6 +5,7 @@ import glob
 import subprocess
 import re
 import argparse
+import unicodedata
 
 def load_env():
     env_vars = {}
@@ -23,9 +24,34 @@ def load_env():
 def natural_key(string):
     return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', string)]
 
+def extract_task_title(matlab_dir, m_file, default_title=None):
+    path = os.path.join(matlab_dir, m_file)
+    if os.path.exists(path):
+        try:
+            lines = []
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    stripped = line.strip()
+                    if not stripped:
+                        if lines:
+                            break  # Empty line ends the title comment block
+                        continue
+                    if stripped.startswith('%'):
+                        content = stripped.lstrip('%').strip()
+                        if content:
+                            lines.append(content)
+                    else:
+                        break
+            if lines:
+                return " ".join(lines)
+        except Exception:
+            pass
+    return default_title
+
 def latex_escape(text):
     if not text:
         return ""
+    text = unicodedata.normalize('NFKC', text)
     lines = []
     for line in text.splitlines():
         escaped_line = ""
@@ -174,47 +200,47 @@ def find_task_inference(task_name, sections, matlab_dir, input_dir):
             
     return None
 
-def find_screenshots(matlab_dir, input_dir, name_no_ext):
-    patterns = [
-        os.path.join(matlab_dir, f"{name_no_ext}*.png"),
-        os.path.join(matlab_dir, f"{name_no_ext}*.jpg"),
-        os.path.join(matlab_dir, f"{name_no_ext}*.jpeg"),
-        os.path.join(input_dir, f"{name_no_ext}*.png"),
-        os.path.join(input_dir, f"{name_no_ext}*.jpg"),
-        os.path.join(input_dir, f"{name_no_ext}*.jpeg"),
-    ]
+def find_screenshots(dirs, name_no_ext):
+    import re
+    regexes = []
     
+    # 1. Standard pattern based on name_no_ext
+    escaped_base = re.escape(name_no_ext)
+    regexes.append(re.compile(rf"^{escaped_base}(?:[._-][a-zA-Z0-9_-]+|[a-zA-Z])?\.(?:png|jpg|jpeg|PNG|JPG|JPEG)$", re.IGNORECASE))
+    
+    # 2. Numbered representation pattern
     m = re.match(r"(?i)LS(?:_)?(\d+)[_\-\s\.]*(\d+)", name_no_ext)
     if m:
         l_str, q_str = m.groups()
         l_val = int(l_str)
         q_val = int(q_str)
         
-        q_representations = [q_str, str(q_val)]
-        l_representations = [l_str, str(l_val)]
+        q_representations = sorted(list(set([q_str, str(q_val)])))
+        l_representations = sorted(list(set([l_str, str(l_val)])))
         
         for l_repr in l_representations:
             for q_repr in q_representations:
-                prefix_dot = f"{l_repr}.{q_repr}"
-                prefix_underscore = f"{l_repr}_{q_repr}"
-                prefix_dash = f"{l_repr}-{q_repr}"
-                
-                for pref in [prefix_dot, prefix_underscore, prefix_dash]:
-                    for folder in [matlab_dir, input_dir]:
-                        for ext in ["png", "jpg", "jpeg", "PNG", "JPG", "JPEG"]:
-                            patterns.append(os.path.join(folder, f"{pref}.{ext}"))
-                            patterns.append(os.path.join(folder, f"{pref}_*.{ext}"))
-                            patterns.append(os.path.join(folder, f"{pref}-*.{ext}"))
+                l_esc = re.escape(l_repr)
+                q_esc = re.escape(q_repr)
+                regexes.append(re.compile(rf"^{l_esc}[._-]{q_esc}(?:[._-][a-zA-Z0-9_-]+|[a-zA-Z])?\.(?:png|jpg|jpeg|PNG|JPG|JPEG)$", re.IGNORECASE))
 
     found_files = []
     seen = set()
-    for pat in patterns:
-        for p in glob.glob(pat):
-            abs_p = os.path.abspath(p)
-            if abs_p not in seen:
-                seen.add(abs_p)
-                found_files.append(p)
-                
+    for folder in dirs:
+        if not os.path.exists(folder):
+            continue
+        for filename in os.listdir(folder):
+            filepath = os.path.join(folder, filename)
+            if not os.path.isfile(filepath):
+                continue
+            for rx in regexes:
+                if rx.match(filename):
+                    abs_p = os.path.abspath(filepath)
+                    if abs_p not in seen:
+                        seen.add(abs_p)
+                        found_files.append(filepath)
+                    break
+                    
     return sorted(found_files, key=natural_key)
 
 def main():
@@ -229,15 +255,18 @@ def main():
     matlab_dir = env.get('MATLAB_DIR', 'src')
     output_dir = env.get('OUTPUT_DIR', 'output')
     input_dir = env.get('INPUT_DIR', 'input')
+    pics_dir = env.get('PICS_DIR', 'pics')
     
     skip_run = args.skip_run or (env.get('SKIP_RUN', 'false').lower() in ('true', '1', 'yes'))
 
     print(f"Loading files from: {matlab_dir}")
+    print(f"Pics Directory: {pics_dir}")
     print(f"Saving outputs to: {output_dir}")
     print(f"Student: {student_name} ({student_roll})")
     print(f"Skip Run: {skip_run}")
 
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(pics_dir, exist_ok=True)
 
     if not os.path.exists(matlab_dir):
         print(f"Error: Directory '{matlab_dir}' does not exist.")
@@ -260,7 +289,11 @@ def main():
         output_path = os.path.join(matlab_dir, f"{name_no_ext}_output.txt")
         output_text = ""
 
-        if not skip_run:
+        # Check pics/ first
+        pics_plots = find_screenshots([pics_dir], name_no_ext)
+        task_skip_run = skip_run or bool(pics_plots)
+
+        if not task_skip_run:
             # Clean old output/plots in MATLAB_DIR for this task
             old_plots = glob.glob(os.path.join(matlab_dir, f"{name_no_ext}*.png"))
             for p in old_plots:
@@ -324,19 +357,30 @@ def main():
                 print("No existing console output found.")
 
         # Detect generated/manual plots & screenshots
-        plots = find_screenshots(matlab_dir, input_dir, name_no_ext)
-        print(f"Found {len(plots)} plot(s)/screenshot(s): {[os.path.basename(p) for p in plots]}")
+        if pics_plots:
+            plots = pics_plots
+            print(f"Using screenshots from pics/: {[os.path.basename(p) for p in plots]}")
+        else:
+            plots = find_screenshots([matlab_dir, input_dir], name_no_ext)
+            print(f"Found {len(plots)} plot(s)/screenshot(s): {[os.path.basename(p) for p in plots]}")
 
         # Find task-specific inference
         task_inference = find_task_inference(name_no_ext, sections_inference, matlab_dir, input_dir)
         task_inference_escaped = latex_escape(task_inference) if task_inference else None
 
+        task_title = extract_task_title(matlab_dir, base_name, None)
+        if task_title:
+            task_title_escaped = latex_escape(task_title)
+        else:
+            task_title_escaped = f"Task: {latex_escape(name_no_ext)}"
+
         sections_data.append({
             "name": name_no_ext,
             "m_file": base_name,
+            "title": task_title_escaped,
             "has_output": bool(output_text),
             "output_path_rel": os.path.relpath(output_path, os.getcwd()) if (output_text and os.path.exists(output_path)) else None,
-            "plots": [os.path.relpath(p, os.getcwd()) for p in plots],
+            "plots": [os.path.relpath(p, output_dir) for p in plots],
             "inference": task_inference_escaped
         })
 
@@ -378,12 +422,14 @@ def main():
     tex_content.append(r"\vspace{-0.2cm}")
 
     for sec in sections_data:
-        tex_content.append(f"\\subsection*{{Task: {latex_escape(sec['name'])}}}")
+        tex_content.append(f"\\subsection*{{{sec['title']}}}")
         tex_content.append(r"\vspace{-0.1cm}")
         
         # Include code
         tex_content.append(r"\noindent\textbf{Source Code:}")
-        tex_content.append(f"\\lstinputlisting{{{matlab_dir}/{sec['m_file']}}}")
+        m_file_path = os.path.join(matlab_dir, sec['m_file'])
+        rel_m_file = os.path.relpath(m_file_path, output_dir)
+        tex_content.append(f"\\lstinputlisting{{{rel_m_file}}}")
         tex_content.append(r"\vspace{-0.3cm}")
 
         # Code output and plots block
@@ -409,17 +455,25 @@ def main():
                 
                 num_plots = len(sec['plots'])
                 if num_plots == 1:
-                    tex_content.append(f"    \\includegraphics[width=0.65\\textwidth]{{{sec['plots'][0]}}}")
+                    tex_content.append(f"    \\includegraphics[width=0.65\\textwidth]{{{{{sec['plots'][0]}}}}}")
                 else:
-                    for j, plot_file in enumerate(sec['plots']):
-                        tex_content.append(f"    \\begin{{minipage}}[b]{{0.48\\textwidth}}")
-                        tex_content.append(f"        \\centering")
-                        tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{plot_file}}}")
-                        tex_content.append(f"    \\end{{minipage}}")
-                        if j % 2 == 1 and j < num_plots - 1:
+                    for idx in range(0, num_plots, 2):
+                        if idx + 1 < num_plots:
+                            tex_content.append(r"    \begin{minipage}[b]{0.48\textwidth}")
+                            tex_content.append(r"        \centering")
+                            tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx]}}}}}")
+                            tex_content.append(r"    \end{minipage}")
+                            tex_content.append(r"    \hfill")
+                            tex_content.append(r"    \begin{minipage}[b]{0.48\textwidth}")
+                            tex_content.append(r"        \centering")
+                            tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx+1]}}}}}")
+                            tex_content.append(r"    \end{minipage}")
+                        else:
+                            tex_content.append(f"    \\includegraphics[width=0.65\\textwidth]{{{{{sec['plots'][idx]}}}}}")
+                        
+                        if idx + 2 < num_plots:
                             tex_content.append(r"    \\")
-                        elif j < num_plots - 1:
-                            tex_content.append(r"\hfill")
+                            tex_content.append(r"    \vspace{0.2cm}")
                 
                 tex_content.append(r"\end{figure}")
         
@@ -452,7 +506,8 @@ def main():
     try:
         for _ in range(2):
             subprocess.run(
-                ["pdflatex", "-interaction=nonstopmode", f"-output-directory={output_dir}", tex_path],
+                ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+                cwd=output_dir,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 check=True

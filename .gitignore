@@ -15,7 +15,6 @@
 
 # Allow MATLAB/Octave source code directory and files
 !src/
-!src/**/*.m
 
 !README.md
 !SKILL.md
@@ -25,3 +24,4 @@
 !input/.gitkeep
 !output/
 !output/.gitkeep
+!pics/

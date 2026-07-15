@@ -82,6 +82,7 @@ STUDENT_ROLL_NUMBER="Roll Number"
 MATLAB_DIR="src"
 INPUT_DIR="input"
 OUTPUT_DIR="output"
+PICS_DIR="pics"
 ```
 
 ### Step B: Run Compilation Script
@@ -94,10 +95,9 @@ python3 generate_report.py [options]
 *   `--skip-run`, `-s`: Skips executing the MATLAB/Octave scripts. Instead, it reads existing manual output text files and links manually provided screenshots directly.
 *   `--inference <path>`, `-i <path>`: Specifies a custom path to the inference text file (defaults to looking for `inference.txt` in the root, `src/`, or `input/` directory).
 
-#### Manual Screenshot & Output File Matching:
-If using `--skip-run` or manually providing screenshots/console outputs:
+*   **Pics directory override**: If matching screenshots are found in the `pics/` directory (or configured `PICS_DIR`), execution of the corresponding `.m` script is automatically skipped, and those screenshots are used directly.
 *   **Standard matching**: Files starting with the script name (e.g. `LS1_01_plot.png` for `LS1_01.m`).
-*   **Numbered matching**: For scripts matching the pattern `LS<labsheet>_<question>` (e.g. `LS1_01.m`), screenshots can be named like `<labsheet>.<question>.png` (e.g. `1.1.png`, `1.1_2.png`, etc.) or `<labsheet>_<question>.png` and can be placed in either `input/` or `src/` directory.
+*   **Numbered matching**: For scripts matching the pattern `LS<labsheet>_<question>` (e.g. `LS1_01.m`), screenshots can be named like `<labsheet>.<question>.png` (e.g. `1.1.png`, `1.1_2.png`, etc.) or `<labsheet>_<question>.png` and can be placed in `pics/`, `input/`, or `src/` directory.
 
 #### Inferences Integration (`inference.txt`):
 You can place an `inference.txt` file in the root, `src/`, or `input/` directory. 
@@ -106,8 +106,9 @@ You can place an `inference.txt` file in the root, `src/`, or `input/` directory
 
 ### What the compiler does behind the scenes:
 1. Scans the configured `MATLAB_DIR` (default: `src`) directory for `.m` files, sorted naturally.
-2. If `--skip-run` is not enabled, runs each script via GNU Octave in quiet, non-GUI mode and pipes command-line outputs to `<file>_output.txt`. If `--skip-run` is enabled, checks for existing `<file>_output.txt` or `<l>.<q>_output.txt`.
-3. Detects any generated/manual plots/screenshots (checking both standard base names and `<labsheet>.<question>` formats).
+2. For each task, checks for existing screenshots in `pics/`. If found, skips execution for this task and loads existing console outputs.
+3. If no screenshots are found in `pics/` and `--skip-run` is not enabled, runs the script via GNU Octave in quiet, non-GUI mode, piping output to `<file>_output.txt`. If `--skip-run` is enabled, checks for existing outputs.
+4. Detects plots/screenshots from `pics/` (if skipped/overridden) or `src/`/`input/` (checking both standard base names and `<labsheet>.<question>` formats).
 4. Matches and reads task-specific and overall inferences from `inference.txt` or dedicated files.
 5. Auto-generates `report.tex` inside the configured `OUTPUT_DIR` (default: `output`) using narrow margins, embedding the source code, output snippets, plots side-by-side, and formatting inferences.
 6. Compiles the document to `report.pdf` inside `output/` using `pdflatex` (runs twice) and cleans up auxiliary files.
