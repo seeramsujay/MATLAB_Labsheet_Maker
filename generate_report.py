@@ -385,124 +385,240 @@ def main():
         })
 
     # Generate LaTeX content
-    print("\nGenerating report.tex...")
-    
     esc_name = latex_escape(student_name)
     esc_roll = latex_escape(student_roll)
 
-    tex_content = []
-    tex_content.append(r"\documentclass[10pt]{article}")
-    tex_content.append(r"\usepackage[margin=0.5in]{geometry}")
-    tex_content.append(r"\usepackage{graphicx}")
-    tex_content.append(r"\usepackage{listings}")
-    tex_content.append(r"\usepackage{xcolor}")
-    tex_content.append(r"\usepackage{float}")
-    tex_content.append(r"\usepackage{microtype}")
-    tex_content.append(r"\raggedbottom")
-    
-    tex_content.append(r"\lstset{")
-    tex_content.append(r"    language=Octave,")
-    tex_content.append(r"    basicstyle=\ttfamily\scriptsize,")
-    tex_content.append(r"    breaklines=true,")
-    tex_content.append(r"    frame=single,")
-    tex_content.append(r"    commentstyle=\color{gray},")
-    tex_content.append(r"    keywordstyle=\color{blue},")
-    tex_content.append(r"    showstringspaces=false")
-    tex_content.append(r"}")
-
-    tex_content.append(r"\begin{document}")
-    
-    tex_content.append(r"\noindent")
-    tex_content.append(f"\\textbf{{Name:}} {esc_name} \\hfill \\textbf{{Roll No:}} {esc_roll}\\\\")
-    tex_content.append(r"\noindent\rule{\textwidth}{0.4pt}")
-    tex_content.append(r"\vspace{-0.2cm}")
-    tex_content.append(r"\begin{center}")
-    tex_content.append(r"    \subsection*{DSP Laboratory Report}")
-    tex_content.append(r"\end{center}")
-    tex_content.append(r"\vspace{-0.2cm}")
-
-    for sec in sections_data:
-        tex_content.append(f"\\subsection*{{{sec['title']}}}")
-        tex_content.append(r"\vspace{-0.1cm}")
+    def generate_tex_code(scale_factor, layout_style):
+        tex_content = []
+        tex_content.append(r"\documentclass[10pt]{article}")
+        tex_content.append(r"\usepackage[margin=0.35in]{geometry}")
+        tex_content.append(r"\usepackage{graphicx}")
+        tex_content.append(r"\usepackage{listings}")
+        tex_content.append(r"\usepackage{xcolor}")
+        tex_content.append(r"\usepackage{float}")
+        tex_content.append(r"\usepackage{microtype}")
+        tex_content.append(r"\raggedbottom")
         
-        # Include code
-        tex_content.append(r"\noindent\textbf{Source Code:}")
-        m_file_path = os.path.join(matlab_dir, sec['m_file'])
-        rel_m_file = os.path.relpath(m_file_path, output_dir)
-        tex_content.append(f"\\lstinputlisting{{{rel_m_file}}}")
+        font_size = r"\scriptsize" if scale_factor >= 0.9 else r"\tiny"
+        
+        tex_content.append(r"\lstset{")
+        tex_content.append(r"    language=Octave,")
+        tex_content.append(f"    basicstyle=\\ttfamily{font_size},")
+        tex_content.append(r"    breaklines=true,")
+        tex_content.append(r"    frame=single,")
+        tex_content.append(r"    commentstyle=\color{gray},")
+        tex_content.append(r"    keywordstyle=\color{blue},")
+        tex_content.append(r"    showstringspaces=false")
+        tex_content.append(r"}")
+
+        tex_content.append(r"\begin{document}")
+        
+        tex_content.append(r"\noindent")
+        tex_content.append(f"\\textbf{{Name:}} {esc_name} \\hfill \\textbf{{Roll No:}} {esc_roll}\\\\")
+        tex_content.append(r"\noindent\rule{\textwidth}{0.4pt}")
+        tex_content.append(r"\vspace{-0.3cm}")
+        tex_content.append(r"\begin{center}")
+        tex_content.append(r"    \subsection*{DSP Laboratory Report}")
+        tex_content.append(r"\end{center}")
         tex_content.append(r"\vspace{-0.3cm}")
 
-        # Code output and plots block
-        if sec['has_output'] or sec['plots']:
-            if sec['has_output']:
-                tex_content.append(r"\noindent\textbf{Console Output:}")
-                tex_content.append(r"\begin{verbatim}")
-                output_path_to_read = sec['output_path_rel']
-                with open(output_path_to_read, 'r', encoding='utf-8', errors='ignore') as f:
-                    lines = f.readlines()
-                    if len(lines) > 20:
-                        tex_content.append("".join(lines[:20]) + "\n... [Output Truncated to Save Space] ...")
-                    else:
-                        tex_content.append("".join(lines))
-                tex_content.append(r"\end{verbatim}")
-                tex_content.append(r"\vspace{-0.2cm}")
+        for sec in sections_data:
+            tex_content.append(f"\\subsection*{{{sec['title']}}}")
+            tex_content.append(r"\vspace{-0.1cm}")
+            
+            # Include code
+            tex_content.append(r"\noindent\textbf{Source Code:}")
+            m_file_path = os.path.join(matlab_dir, sec['m_file'])
+            rel_m_file = os.path.relpath(m_file_path, output_dir)
+            tex_content.append(f"\\lstinputlisting{{{rel_m_file}}}")
+            tex_content.append(r"\vspace{-0.3cm}")
 
-            # Show plots/screenshots side-by-side to save space
-            if sec['plots']:
-                tex_content.append(r"\noindent\textbf{Plots:}")
-                tex_content.append(r"\begin{figure}[H]")
-                tex_content.append(r"    \centering")
-                
-                num_plots = len(sec['plots'])
-                if num_plots == 1:
-                    tex_content.append(f"    \\includegraphics[width=0.65\\textwidth]{{{{{sec['plots'][0]}}}}}")
-                else:
-                    for idx in range(0, num_plots, 2):
-                        if idx + 1 < num_plots:
-                            tex_content.append(r"    \begin{minipage}[b]{0.48\textwidth}")
-                            tex_content.append(r"        \centering")
-                            tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx]}}}}}")
-                            tex_content.append(r"    \end{minipage}")
-                            tex_content.append(r"    \hfill")
-                            tex_content.append(r"    \begin{minipage}[b]{0.48\textwidth}")
-                            tex_content.append(r"        \centering")
-                            tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx+1]}}}}}")
-                            tex_content.append(r"    \end{minipage}")
+            # Code output and plots block
+            if sec['has_output'] or sec['plots']:
+                if sec['has_output']:
+                    tex_content.append(r"\noindent\textbf{Console Output:}")
+                    tex_content.append(r"\begin{verbatim}")
+                    output_path_to_read = sec['output_path_rel']
+                    with open(output_path_to_read, 'r', encoding='utf-8', errors='ignore') as f:
+                        lines = f.readlines()
+                        if len(lines) > 20:
+                            tex_content.append("".join(lines[:20]) + "\n... [Output Truncated to Save Space] ...")
                         else:
-                            tex_content.append(f"    \\includegraphics[width=0.65\\textwidth]{{{{{sec['plots'][idx]}}}}}")
-                        
-                        if idx + 2 < num_plots:
-                            tex_content.append(r"    \\")
-                            tex_content.append(r"    \vspace{0.2cm}")
-                
-                tex_content.append(r"\end{figure}")
-        
-        # Show task-specific inference
-        if sec['inference']:
+                            tex_content.append("".join(lines))
+                    tex_content.append(r"\end{verbatim}")
+                    tex_content.append(r"\vspace{-0.2cm}")
+
+                # Show plots/screenshots side-by-side to save space
+                if sec['plots']:
+                    tex_content.append(r"\noindent\textbf{Plots:}")
+                    tex_content.append(r"\begin{figure}[H]")
+                    tex_content.append(r"    \centering")
+                    
+                    num_plots = len(sec['plots'])
+                    
+                    if layout_style == "vertical":
+                        # Stack all plots vertically
+                        width = min(0.95, round(0.65 * scale_factor, 2))
+                        for p_idx, plot_path in enumerate(sec['plots']):
+                            tex_content.append(f"    \\includegraphics[width={width}\\textwidth]{{{{{plot_path}}}}}")
+                            if p_idx + 1 < num_plots:
+                                tex_content.append(r"    \\")
+                                tex_content.append(r"    \vspace{0.1cm}")
+                    else:
+                        # Grid layout
+                        single_width = min(0.95, round(0.65 * scale_factor, 2))
+                        minipage_width = min(0.49, round(0.48 * scale_factor, 2))
+                        if num_plots == 1:
+                            tex_content.append(f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][0]}}}}}")
+                        else:
+                            for idx in range(0, num_plots, 2):
+                                if idx + 1 < num_plots:
+                                    tex_content.append(f"    \\begin{{minipage}}[b]{{{minipage_width}\\textwidth}}")
+                                    tex_content.append(r"        \centering")
+                                    tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx]}}}}}")
+                                    tex_content.append(r"    \end{minipage}")
+                                    tex_content.append(r"    \hfill")
+                                    tex_content.append(f"    \\begin{{minipage}}[b]{{{minipage_width}\\textwidth}}")
+                                    tex_content.append(r"        \centering")
+                                    tex_content.append(f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx+1]}}}}}")
+                                    tex_content.append(r"    \end{minipage}")
+                                else:
+                                    tex_content.append(f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][idx]}}}}}")
+                                
+                                if idx + 2 < num_plots:
+                                    tex_content.append(r"    \\")
+                                    tex_content.append(r"    \vspace{0.2cm}")
+                    
+                    tex_content.append(r"\end{figure}")
+            
+            # Show task-specific inference
+            if sec['inference']:
+                tex_content.append(r"\vspace{0.2cm}")
+                tex_content.append(r"\noindent\textbf{Inference:}")
+                tex_content.append(f"\n{sec['inference']}")
+                tex_content.append(r"\vspace{0.2cm}")
+
+            tex_content.append(r"\hrule")
+
+        # Add global inference at the end if present
+        if global_inference:
+            global_inference_escaped = latex_escape(global_inference)
+            tex_content.append(r"\vspace{0.3cm}")
+            tex_content.append(r"\subsection*{Inference}")
+            tex_content.append(global_inference_escaped)
             tex_content.append(r"\vspace{0.2cm}")
-            tex_content.append(r"\noindent\textbf{Inference:}")
-            tex_content.append(f"\n{sec['inference']}")
-            tex_content.append(r"\vspace{0.2cm}")
 
-        tex_content.append(r"\hrule")
+        tex_content.append(r"\end{document}")
+        return "\n".join(tex_content)
 
-    # Add global inference at the end if present
-    if global_inference:
-        global_inference_escaped = latex_escape(global_inference)
-        tex_content.append(r"\vspace{0.3cm}")
-        tex_content.append(r"\subsection*{Inference}")
-        tex_content.append(global_inference_escaped)
-        tex_content.append(r"\vspace{0.2cm}")
-
-    tex_content.append(r"\end{document}")
+    def get_pdf_page_count():
+        log_path = os.path.join(output_dir, "report.log")
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    log_text = f.read()
+                    m = re.search(r"Output written on .*? \((\d+) page", log_text)
+                    if m:
+                        return int(m.group(1))
+            except Exception:
+                pass
+        return 1
 
     tex_path = os.path.join(output_dir, "report.tex")
-    with open(tex_path, "w", encoding='utf-8') as f:
-        f.write("\n".join(tex_content))
-    print(f"Created {tex_path} successfully.")
 
-    # Compile LaTeX report
-    print(f"\nCompiling {tex_path} to PDF...")
+    print("\nOptimizing document layout and page fit...")
+    
+    # 1. Compile with vertical and grid baseline layouts at scale 0.5 to find minimum pages
+    print("Testing vertical layout baseline (scale 0.5)...")
+    baseline_vertical_tex = generate_tex_code(0.5, "vertical")
+    with open(tex_path, "w", encoding='utf-8') as f:
+        f.write(baseline_vertical_tex)
+        
+    vertical_min_pages = 999
+    try:
+        subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+            cwd=output_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True
+        )
+        vertical_min_pages = get_pdf_page_count()
+        print(f"Vertical layout baseline page count: {vertical_min_pages}")
+    except Exception as e:
+        print(f"Vertical baseline compile failed: {e}")
+
+    print("Testing grid layout baseline (scale 0.5)...")
+    baseline_grid_tex = generate_tex_code(0.5, "grid")
+    with open(tex_path, "w", encoding='utf-8') as f:
+        f.write(baseline_grid_tex)
+        
+    grid_min_pages = 999
+    try:
+        subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+            cwd=output_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True
+        )
+        grid_min_pages = get_pdf_page_count()
+        print(f"Grid layout baseline page count: {grid_min_pages}")
+    except Exception as e:
+        print(f"Grid baseline compile failed: {e}")
+
+    # Determine layout strategy based on space constraint
+    if vertical_min_pages <= grid_min_pages:
+        selected_layout = "vertical"
+        min_pages = vertical_min_pages
+        print("Selected layout style: Vertical (covers page better).")
+    else:
+        selected_layout = "grid"
+        min_pages = grid_min_pages
+        print("Selected layout style: Grid (more compact to save pages).")
+
+    # 2. Binary search the optimal scale factor
+    low_scale = 0.5
+    high_scale = 1.8
+    optimal_scale = low_scale
+    optimal_tex = generate_tex_code(low_scale, selected_layout)
+
+    # Let's search 6 times to get very good accuracy
+    for i in range(6):
+        mid_scale = round((low_scale + high_scale) / 2, 2)
+        print(f"Testing layout scale factor: {mid_scale}...", end="", flush=True)
+        tex_code = generate_tex_code(mid_scale, selected_layout)
+        with open(tex_path, "w", encoding='utf-8') as f:
+            f.write(tex_code)
+            
+        try:
+            subprocess.run(
+                ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+                cwd=output_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True
+            )
+            pages = get_pdf_page_count()
+            print(f" resulting page count: {pages}")
+            if pages <= min_pages:
+                # Scale fits within the minimal target pages, try larger scale
+                optimal_scale = mid_scale
+                optimal_tex = tex_code
+                low_scale = mid_scale + 0.05
+            else:
+                # Scale overflows the minimal target pages, try smaller scale
+                high_scale = mid_scale - 0.05
+        except Exception:
+            high_scale = mid_scale - 0.05
+
+    print(f"Found optimal page-fill scale factor: {optimal_scale}")
+
+    # 3. Write final optimized report.tex and compile twice to resolve references/pages
+    with open(tex_path, "w", encoding='utf-8') as f:
+        f.write(optimal_tex)
+
+    print("\nCompiling final optimized PDF report...")
     try:
         for _ in range(2):
             subprocess.run(
@@ -514,6 +630,7 @@ def main():
             )
         print(f"Compiled report.pdf inside {output_dir} successfully!")
         
+        # Clean up LaTeX temp files
         for ext in ["aux", "log", "out"]:
             for f in glob.glob(os.path.join(output_dir, f"report.{ext}")):
                 try:
@@ -521,7 +638,7 @@ def main():
                 except Exception:
                     pass
     except Exception as e:
-        print(f"Error compiling LaTeX report. Make sure pdflatex is installed. Details: {str(e)}")
+        print(f"Error compiling final LaTeX report: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
