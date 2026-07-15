@@ -389,6 +389,12 @@ def main():
     esc_roll = latex_escape(student_roll)
 
     def generate_tex_code(scale_factor, layout_style):
+        # scale_factor can be a list of floats (one per section) or a single float
+        if isinstance(scale_factor, (int, float)):
+            scales = [scale_factor] * len(sections_data)
+        else:
+            scales = scale_factor
+
         tex_content = []
         tex_content.append(r"\documentclass[10pt]{article}")
         tex_content.append(r"\usepackage[margin=0.35in]{geometry}")
@@ -399,16 +405,16 @@ def main():
         tex_content.append(r"\usepackage{microtype}")
         tex_content.append(r"\raggedbottom")
         
-        font_size = r"\scriptsize" if scale_factor >= 0.9 else r"\tiny"
-        
         tex_content.append(r"\lstset{")
         tex_content.append(r"    language=Octave,")
-        tex_content.append(f"    basicstyle=\\ttfamily{font_size},")
+        tex_content.append(r"    basicstyle=\ttfamily\tiny,")  # default fallback
         tex_content.append(r"    breaklines=true,")
         tex_content.append(r"    frame=single,")
         tex_content.append(r"    commentstyle=\color{gray},")
         tex_content.append(r"    keywordstyle=\color{blue},")
-        tex_content.append(r"    showstringspaces=false")
+        tex_content.append(r"    showstringspaces=false,")
+        tex_content.append(r"    aboveskip=4pt,")
+        tex_content.append(r"    belowskip=4pt")
         tex_content.append(r"}")
 
         tex_content.append(r"\begin{document}")
@@ -422,16 +428,18 @@ def main():
         tex_content.append(r"\end{center}")
         tex_content.append(r"\vspace{-0.3cm}")
 
-        for sec in sections_data:
+        for sec_idx, sec in enumerate(sections_data):
+            sec_scale = scales[sec_idx]
             tex_content.append(f"\\subsection*{{{sec['title']}}}")
             tex_content.append(r"\vspace{-0.1cm}")
             
-            # Include code
+            # Include code with dynamic listing basicstyle font size based on scale
             tex_content.append(r"\noindent\textbf{Source Code:}")
             m_file_path = os.path.join(matlab_dir, sec['m_file'])
             rel_m_file = os.path.relpath(m_file_path, output_dir)
-            tex_content.append(f"\\lstinputlisting{{{rel_m_file}}}")
-            tex_content.append(r"\vspace{-0.3cm}")
+            sec_font_size = r"\scriptsize" if sec_scale >= 0.9 else r"\tiny"
+            tex_content.append(f"\\lstinputlisting[basicstyle=\\ttfamily{sec_font_size}]{{{rel_m_file}}}")
+            tex_content.append(r"\vspace{0.05cm}")
 
             # Code output and plots block
             if sec['has_output'] or sec['plots']:
@@ -458,7 +466,7 @@ def main():
                     
                     if layout_style == "vertical":
                         # Stack all plots vertically
-                        width = min(0.95, round(0.65 * scale_factor, 2))
+                        width = min(0.95, round(0.65 * sec_scale, 2))
                         for p_idx, plot_path in enumerate(sec['plots']):
                             tex_content.append(f"    \\includegraphics[width={width}\\textwidth]{{{{{plot_path}}}}}")
                             if p_idx + 1 < num_plots:
@@ -466,8 +474,8 @@ def main():
                                 tex_content.append(r"    \vspace{0.1cm}")
                     else:
                         # Grid layout
-                        single_width = min(0.95, round(0.65 * scale_factor, 2))
-                        minipage_width = min(0.49, round(0.48 * scale_factor, 2))
+                        single_width = min(0.95, round(0.65 * sec_scale, 2))
+                        minipage_width = min(0.49, round(0.48 * sec_scale, 2))
                         if num_plots == 1:
                             tex_content.append(f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][0]}}}}}")
                         else:
@@ -528,69 +536,44 @@ def main():
 
     print("\nOptimizing document layout and page fit...")
     
-    # 1. Compile with vertical and grid baseline layouts at scale 0.5 to find minimum pages
+    # 1. Determine baseline page count for vertical layout (at scale 0.5)
     print("Testing vertical layout baseline (scale 0.5)...")
     baseline_vertical_tex = generate_tex_code(0.5, "vertical")
     with open(tex_path, "w", encoding='utf-8') as f:
         f.write(baseline_vertical_tex)
-        
-    vertical_min_pages = 999
+    v_target_pages = 999
     try:
-        subprocess.run(
-            ["pdflatex", "-interaction=nonstopmode", "report.tex"],
-            cwd=output_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=True
-        )
-        vertical_min_pages = get_pdf_page_count()
-        print(f"Vertical layout baseline page count: {vertical_min_pages}")
+        subprocess.run(["pdflatex", "-interaction=nonstopmode", "report.tex"], cwd=output_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        v_target_pages = get_pdf_page_count()
+        print(f"Vertical baseline pages: {v_target_pages}")
     except Exception as e:
         print(f"Vertical baseline compile failed: {e}")
 
+    # 2. Determine baseline page count for grid layout (at scale 0.5)
     print("Testing grid layout baseline (scale 0.5)...")
     baseline_grid_tex = generate_tex_code(0.5, "grid")
     with open(tex_path, "w", encoding='utf-8') as f:
         f.write(baseline_grid_tex)
-        
-    grid_min_pages = 999
+    g_target_pages = 999
     try:
-        subprocess.run(
-            ["pdflatex", "-interaction=nonstopmode", "report.tex"],
-            cwd=output_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=True
-        )
-        grid_min_pages = get_pdf_page_count()
-        print(f"Grid layout baseline page count: {grid_min_pages}")
+        subprocess.run(["pdflatex", "-interaction=nonstopmode", "report.tex"], cwd=output_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        g_target_pages = get_pdf_page_count()
+        print(f"Grid baseline pages: {g_target_pages}")
     except Exception as e:
         print(f"Grid baseline compile failed: {e}")
 
-    # Determine layout strategy based on space constraint
-    if vertical_min_pages <= grid_min_pages:
-        selected_layout = "vertical"
-        min_pages = vertical_min_pages
-        print("Selected layout style: Vertical (covers page better).")
-    else:
-        selected_layout = "grid"
-        min_pages = grid_min_pages
-        print("Selected layout style: Grid (more compact to save pages).")
-
-    # 2. Binary search the optimal scale factor
-    low_scale = 0.5
-    high_scale = 1.8
-    optimal_scale = low_scale
-    optimal_tex = generate_tex_code(low_scale, selected_layout)
-
-    # Let's search 6 times to get very good accuracy
-    for i in range(6):
-        mid_scale = round((low_scale + high_scale) / 2, 2)
-        print(f"Testing layout scale factor: {mid_scale}...", end="", flush=True)
-        tex_code = generate_tex_code(mid_scale, selected_layout)
+    # Now, run binary search for Vertical layout
+    print("\nOptimizing scale for vertical layout...")
+    v_low = 0.5
+    v_high = 1.8
+    v_opt_scale = 0.5
+    
+    for i in range(6):  # 6 iterations gives 0.02 precision
+        mid = round((v_low + v_high) / 2, 2)
+        print(f"Testing vertical scale {mid}...", end="", flush=True)
+        tex_code = generate_tex_code(mid, "vertical")
         with open(tex_path, "w", encoding='utf-8') as f:
             f.write(tex_code)
-            
         try:
             subprocess.run(
                 ["pdflatex", "-interaction=nonstopmode", "report.tex"],
@@ -601,20 +584,115 @@ def main():
             )
             pages = get_pdf_page_count()
             print(f" resulting page count: {pages}")
-            if pages <= min_pages:
-                # Scale fits within the minimal target pages, try larger scale
-                optimal_scale = mid_scale
-                optimal_tex = tex_code
-                low_scale = mid_scale + 0.05
+            if pages <= v_target_pages:
+                v_opt_scale = mid
+                v_low = mid + 0.05
             else:
-                # Scale overflows the minimal target pages, try smaller scale
-                high_scale = mid_scale - 0.05
+                v_high = mid - 0.05
         except Exception:
-            high_scale = mid_scale - 0.05
+            v_high = mid - 0.05
+    print(f"Vertical optimal: scale {v_opt_scale}, pages {v_target_pages}")
 
-    print(f"Found optimal page-fill scale factor: {optimal_scale}")
+    # Run binary search for Grid layout
+    print("\nOptimizing scale for grid layout...")
+    g_low = 0.5
+    g_high = 1.8
+    g_opt_scale = 0.5
+    
+    for i in range(6):
+        mid = round((g_low + g_high) / 2, 2)
+        print(f"Testing grid scale {mid}...", end="", flush=True)
+        tex_code = generate_tex_code(mid, "grid")
+        with open(tex_path, "w", encoding='utf-8') as f:
+            f.write(tex_code)
+        try:
+            subprocess.run(
+                ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+                cwd=output_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True
+            )
+            pages = get_pdf_page_count()
+            print(f" resulting page count: {pages}")
+            if pages <= g_target_pages:
+                g_opt_scale = mid
+                g_low = mid + 0.05
+            else:
+                g_high = mid - 0.05
+        except Exception:
+            g_high = mid - 0.05
+    print(f"Grid optimal: scale {g_opt_scale}, pages {g_target_pages}")
 
-    # 3. Write final optimized report.tex and compile twice to resolve references/pages
+    # Now make the final selection
+    v_metric = 0.65 * v_opt_scale
+    g_metric = 0.48 * g_opt_scale
+
+    if v_target_pages < g_target_pages:
+        selected_layout = "vertical"
+        optimal_scale = v_opt_scale
+        print(f"Selected Vertical layout: page count {v_target_pages} is lower than Grid page count {g_target_pages}.")
+    elif g_target_pages < v_target_pages:
+        selected_layout = "grid"
+        optimal_scale = g_opt_scale
+        print(f"Selected Grid layout: page count {g_target_pages} is lower than Vertical page count {v_target_pages}.")
+    else:
+        # Page counts are equal, compare image metrics to maximize screen coverage
+        if v_metric >= g_metric:
+            selected_layout = "vertical"
+            optimal_scale = v_opt_scale
+            print(f"Selected Vertical layout: both take {v_target_pages} pages, but Vertical offers larger average plot width ({round(v_metric, 2)} vs {round(g_metric, 2)}).")
+        else:
+            selected_layout = "grid"
+            optimal_scale = g_opt_scale
+            print(f"Selected Grid layout: both take {g_target_pages} pages, but Grid offers larger average plot width ({round(g_metric, 2)} vs {round(v_metric, 2)}).")
+
+    target_pages = v_target_pages if selected_layout == "vertical" else g_target_pages
+    section_scales = [optimal_scale] * len(sections_data)
+    
+    print(f"\nRefining section scales individually (Page-Fill Optimization) for target count of {target_pages} pages...")
+    for idx in range(len(sections_data)):
+        print(f"Optimizing Section {idx+1} ({sections_data[idx]['m_file']})...", end="", flush=True)
+        # Binary search the optimal scale for this specific section in the range [optimal_scale, 1.8]
+        low_s = optimal_scale
+        high_s = 1.8
+        best_s = optimal_scale
+        
+        for step in range(5):  # 5 steps gives 0.04 precision, fast enough
+            mid_s = round((low_s + high_s) / 2, 2)
+            # Create a copy and update the scale for this section
+            test_scales = list(section_scales)
+            test_scales[idx] = mid_s
+            
+            tex_code = generate_tex_code(test_scales, selected_layout)
+            with open(tex_path, "w", encoding='utf-8') as f:
+                f.write(tex_code)
+                
+            try:
+                subprocess.run(
+                    ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+                    cwd=output_dir,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=True
+                )
+                pages = get_pdf_page_count()
+                if pages <= target_pages:
+                    best_s = mid_s
+                    low_s = mid_s + 0.04
+                else:
+                    high_s = mid_s - 0.04
+            except Exception:
+                high_s = mid_s - 0.04
+        
+        # Save the best scale found for this section
+        section_scales[idx] = best_s
+        print(f" optimal scale: {best_s}")
+    
+    print(f"Final refined section scales: {section_scales}")
+    
+    # Generate final optimized LaTeX content
+    optimal_tex = generate_tex_code(section_scales, selected_layout)
     with open(tex_path, "w", encoding='utf-8') as f:
         f.write(optimal_tex)
 
