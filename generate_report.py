@@ -272,9 +272,11 @@ def main():
         print(f"Error: Directory '{matlab_dir}' does not exist.")
         sys.exit(1)
 
-    m_files = sorted(glob.glob(os.path.join(matlab_dir, "*.m")), key=natural_key)
+    exclude_files = [f.strip().lower() for f in env.get('EXCLUDE_FILES', 'dft.m,dtft.m,idft.m').split(',') if f.strip()]
+    all_m_files = sorted(glob.glob(os.path.join(matlab_dir, "*.m")), key=natural_key)
+    m_files = [f for f in all_m_files if os.path.basename(f).lower() not in exclude_files]
     if not m_files:
-        print(f"No .m files found in '{matlab_dir}'.")
+        print(f"No valid .m files found in '{matlab_dir}'.")
         sys.exit(1)
 
     sections_inference, global_inference = load_inference(args.inference, matlab_dir, input_dir)
