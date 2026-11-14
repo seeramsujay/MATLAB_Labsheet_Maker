@@ -26,3 +26,12 @@
 !output/.gitkeep
 !pics/
 Archives
+
+# Allow CI, configs and tests
+!.flake8
+!.github/
+!.github/**
+!.coderabbit.yaml
+!pyproject.toml
+!tests/
+!tests/**
