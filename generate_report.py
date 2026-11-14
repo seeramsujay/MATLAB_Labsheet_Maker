@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-import os
-import sys
-import glob
-import subprocess
-import re
 import argparse
+import glob
+import os
+import re
+import subprocess
+import sys
 import unicodedata
 
 
 def load_env():
     env_vars = {}
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
+    if os.path.exists(".env"):
+        with open(".env", "r") as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#'):
-                    parts = line.split('=', 1)
+                if line and not line.startswith("#"):
+                    parts = line.split("=", 1)
                     if len(parts) == 2:
                         key = parts[0].strip()
                         val = parts[1].strip().strip('"').strip("'")
@@ -24,7 +24,7 @@ def load_env():
 
 
 def natural_key(string):
-    return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', string)]
+    return [int(s) if s.isdigit() else s.lower() for s in re.split(r"(\d+)", string)]
 
 
 def extract_task_title(matlab_dir, m_file, default_title=None):
@@ -32,15 +32,15 @@ def extract_task_title(matlab_dir, m_file, default_title=None):
     if os.path.exists(path):
         try:
             lines = []
-            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
                 for line in f:
                     stripped = line.strip()
                     if not stripped:
                         if lines:
                             break  # Empty line ends the title comment block
                         continue
-                    if stripped.startswith('%'):
-                        content = stripped.lstrip('%').strip()
+                    if stripped.startswith("%"):
+                        content = stripped.lstrip("%").strip()
                         if content:
                             lines.append(content)
                     else:
@@ -55,19 +55,19 @@ def extract_task_title(matlab_dir, m_file, default_title=None):
 def latex_escape(text):
     if not text:
         return ""
-    text = unicodedata.normalize('NFKC', text)
+    text = unicodedata.normalize("NFKC", text)
     lines = []
     for line in text.splitlines():
         escaped_line = ""
         for char in line:
-            if char == '\\':
-                escaped_line += r'\textbackslash{}'
-            elif char in ('&', '%', '$', '#', '_', '{', '}'):
-                escaped_line += '\\' + char
-            elif char == '~':
-                escaped_line += r'\textasciitilde{}'
-            elif char == '^':
-                escaped_line += r'\textasciicircum{}'
+            if char == "\\":
+                escaped_line += r"\textbackslash{}"
+            elif char in ("&", "%", "$", "#", "_", "{", "}"):
+                escaped_line += "\\" + char
+            elif char == "~":
+                escaped_line += r"\textasciitilde{}"
+            elif char == "^":
+                escaped_line += r"\textasciicircum{}"
             else:
                 escaped_line += char
         lines.append(escaped_line)
@@ -90,10 +90,10 @@ def parse_inference_file(file_path):
         r"|([\w\.]+)\s*[:\-]+"
         r"|Task\s+([\w\.]+)\s*[:\-]*"
         r")$",
-        re.IGNORECASE
+        re.IGNORECASE,
     )
 
-    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
             stripped = line.strip()
             if not stripped:
@@ -110,7 +110,9 @@ def parse_inference_file(file_path):
                     global_lines.extend(current_lines)
 
                 # Extract and normalize section key
-                current_section = next(g for g in match.groups() if g is not None).strip().lower()
+                current_section = (
+                    next(g for g in match.groups() if g is not None).strip().lower()
+                )
                 current_lines = []
             else:
                 current_lines.append(line)
@@ -129,11 +131,13 @@ def load_inference(inference_file, matlab_dir, input_dir):
         target_files.append(inference_file)
     else:
         # Default search order for inference.txt
-        target_files.extend([
-            "inference.txt",
-            os.path.join(matlab_dir, "inference.txt"),
-            os.path.join(input_dir, "inference.txt")
-        ])
+        target_files.extend(
+            [
+                "inference.txt",
+                os.path.join(matlab_dir, "inference.txt"),
+                os.path.join(input_dir, "inference.txt"),
+            ]
+        )
 
     for path in target_files:
         if os.path.exists(path):
@@ -141,7 +145,7 @@ def load_inference(inference_file, matlab_dir, input_dir):
             sections, global_inference = parse_inference_file(path)
 
             # Merge general/overall sections into global_inference
-            global_keys = ['global', 'overall', 'inference', 'general']
+            global_keys = ["global", "overall", "inference", "general"]
             for gk in global_keys:
                 if gk in sections:
                     if global_inference:
@@ -170,18 +174,20 @@ def find_task_inference(task_name, sections, matlab_dir, input_dir):
         l_str, q_str = m.groups()
         l_val = int(l_str)
         q_val = int(q_str)
-        file_patterns.extend([
-            f"{l_val}.{q_val}_inference.txt",
-            f"{l_val}.{q_val}_inf.txt",
-            f"{l_val}_{q_val}_inference.txt",
-        ])
+        file_patterns.extend(
+            [
+                f"{l_val}.{q_val}_inference.txt",
+                f"{l_val}.{q_val}_inf.txt",
+                f"{l_val}_{q_val}_inference.txt",
+            ]
+        )
 
     for fn in file_patterns:
         for folder in [matlab_dir, input_dir]:
             path = os.path.join(folder, fn)
             if os.path.exists(path):
                 print(f"Found task-specific inference file for {task_name} at: {path}")
-                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(path, "r", encoding="utf-8", errors="ignore") as f:
                     return f.read().strip()
 
     # 2. Search in parsed section dict keys
@@ -190,15 +196,17 @@ def find_task_inference(task_name, sections, matlab_dir, input_dir):
         l_str, q_str = m.groups()
         l_val = int(l_str)
         q_val = int(q_str)
-        keys_to_check.extend([
-            f"{l_val}.{q_val}",
-            f"{l_val}.{q_str}",
-            f"{l_str}.{q_str}",
-            f"{l_val}_{q_val}",
-            f"task {l_val}",
-            f"task {task_lower}",
-            f"task {l_val}.{q_val}",
-        ])
+        keys_to_check.extend(
+            [
+                f"{l_val}.{q_val}",
+                f"{l_val}.{q_str}",
+                f"{l_str}.{q_str}",
+                f"{l_val}_{q_val}",
+                f"task {l_val}",
+                f"task {task_lower}",
+                f"task {l_val}.{q_val}",
+            ]
+        )
 
     for k in keys_to_check:
         if k in sections:
@@ -210,6 +218,7 @@ def find_task_inference(task_name, sections, matlab_dir, input_dir):
 
 def find_screenshots(dirs, name_no_ext):
     import re
+
     regexes = []
 
     # 1. Standard pattern based on name_no_ext
@@ -217,7 +226,9 @@ def find_screenshots(dirs, name_no_ext):
     regexes.append(
         re.compile(
             rf"^{escaped_base}(?:[._-][a-zA-Z0-9_-]+|[a-zA-Z])?\.(?:png|jpg|jpeg|PNG|JPG|JPEG)$",
-            re.IGNORECASE))
+            re.IGNORECASE,
+        )
+    )
 
     # 2. Numbered representation pattern
     m = re.match(r"(?i)LS(?:_)?(\d+)[_\-\s\.]*(\d+)", name_no_ext)
@@ -236,7 +247,9 @@ def find_screenshots(dirs, name_no_ext):
                 regexes.append(
                     re.compile(
                         rf"^{l_esc}[._-]{q_esc}(?:[._-][a-zA-Z0-9_-]+|[a-zA-Z])?\.(?:png|jpg|jpeg|PNG|JPG|JPEG)$",
-                        re.IGNORECASE))
+                        re.IGNORECASE,
+                    )
+                )
 
     found_files = []
     seen = set()
@@ -259,25 +272,35 @@ def find_screenshots(dirs, name_no_ext):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DSP Lab Automation Engine - LaTeX Report Generator")
+    parser = argparse.ArgumentParser(
+        description="DSP Lab Automation Engine - LaTeX Report Generator"
+    )
     parser.add_argument(
         "--skip-run",
         "-s",
         action="store_true",
-        help="Skip executing the MATLAB/Octave scripts and just use existing outputs/plots")
-    parser.add_argument("--inference", "-i", type=str, default=None,
-                        help="Path to the inference text file (default: looks for inference.txt)")
+        help="Skip executing the MATLAB/Octave scripts and just use existing outputs/plots",
+    )
+    parser.add_argument(
+        "--inference",
+        "-i",
+        type=str,
+        default=None,
+        help="Path to the inference text file (default: looks for inference.txt)",
+    )
     args = parser.parse_args()
 
     env = load_env()
-    student_name = env.get('STUDENT_NAME', 'Student Name')
-    student_roll = env.get('STUDENT_ROLL_NUMBER', 'Roll Number')
-    matlab_dir = env.get('MATLAB_DIR', 'src')
-    output_dir = env.get('OUTPUT_DIR', 'output')
-    input_dir = env.get('INPUT_DIR', 'input')
-    pics_dir = env.get('PICS_DIR', 'pics')
+    student_name = env.get("STUDENT_NAME", "Student Name")
+    student_roll = env.get("STUDENT_ROLL_NUMBER", "Roll Number")
+    matlab_dir = env.get("MATLAB_DIR", "src")
+    output_dir = env.get("OUTPUT_DIR", "output")
+    input_dir = env.get("INPUT_DIR", "input")
+    pics_dir = env.get("PICS_DIR", "pics")
 
-    skip_run = args.skip_run or (env.get('SKIP_RUN', 'false').lower() in ('true', '1', 'yes'))
+    skip_run = args.skip_run or (
+        env.get("SKIP_RUN", "false").lower() in ("true", "1", "yes")
+    )
 
     print(f"Loading files from: {matlab_dir}")
     print(f"Pics Directory: {pics_dir}")
@@ -292,14 +315,22 @@ def main():
         print(f"Error: Directory '{matlab_dir}' does not exist.")
         sys.exit(1)
 
-    exclude_files = [f.strip().lower() for f in env.get('EXCLUDE_FILES', 'dft.m,dtft.m,idft.m').split(',') if f.strip()]
+    exclude_files = [
+        f.strip().lower()
+        for f in env.get("EXCLUDE_FILES", "dft.m,dtft.m,idft.m").split(",")
+        if f.strip()
+    ]
     all_m_files = sorted(glob.glob(os.path.join(matlab_dir, "*.m")), key=natural_key)
-    m_files = [f for f in all_m_files if os.path.basename(f).lower() not in exclude_files]
+    m_files = [
+        f for f in all_m_files if os.path.basename(f).lower() not in exclude_files
+    ]
     if not m_files:
         print(f"No valid .m files found in '{matlab_dir}'.")
         sys.exit(1)
 
-    sections_inference, global_inference = load_inference(args.inference, matlab_dir, input_dir)
+    sections_inference, global_inference = load_inference(
+        args.inference, matlab_dir, input_dir
+    )
 
     sections_data = []
 
@@ -340,17 +371,17 @@ def main():
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
-                    timeout=30
+                    timeout=30,
                 )
                 output_text = result.stdout.strip()
             except subprocess.TimeoutExpired:
                 output_text = "Error: Script execution timed out (30s limit)."
             except Exception as e:
-                output_text = f"Error running script: {str(e)}"
+                output_text = f"Error running script: {e!s}"
 
             # Save console output if any
             if output_text:
-                with open(output_path, "w", encoding='utf-8') as f:
+                with open(output_path, "w", encoding="utf-8") as f:
                     f.write(output_text)
                 print("Captured console output.")
             else:
@@ -372,7 +403,7 @@ def main():
                             break
 
             if os.path.exists(output_path):
-                with open(output_path, "r", encoding='utf-8', errors='ignore') as f:
+                with open(output_path, "r", encoding="utf-8", errors="ignore") as f:
                     output_text = f.read().strip()
                 print("Found and loaded existing console output.")
             else:
@@ -381,14 +412,22 @@ def main():
         # Detect generated/manual plots & screenshots
         if pics_plots:
             plots = pics_plots
-            print(f"Using screenshots from pics/: {[os.path.basename(p) for p in plots]}")
+            print(
+                f"Using screenshots from pics/: {[os.path.basename(p) for p in plots]}"
+            )
         else:
             plots = find_screenshots([matlab_dir, input_dir], name_no_ext)
-            print(f"Found {len(plots)} plot(s)/screenshot(s): {[os.path.basename(p) for p in plots]}")
+            print(
+                f"Found {len(plots)} plot(s)/screenshot(s): {[os.path.basename(p) for p in plots]}"
+            )
 
         # Find task-specific inference
-        task_inference = find_task_inference(name_no_ext, sections_inference, matlab_dir, input_dir)
-        task_inference_escaped = latex_escape(task_inference) if task_inference else None
+        task_inference = find_task_inference(
+            name_no_ext, sections_inference, matlab_dir, input_dir
+        )
+        task_inference_escaped = (
+            latex_escape(task_inference) if task_inference else None
+        )
 
         task_title = extract_task_title(matlab_dir, base_name, None)
         if task_title:
@@ -396,15 +435,21 @@ def main():
         else:
             task_title_escaped = f"Task: {latex_escape(name_no_ext)}"
 
-        sections_data.append({
-            "name": name_no_ext,
-            "m_file": base_name,
-            "title": task_title_escaped,
-            "has_output": bool(output_text),
-            "output_path_rel": os.path.relpath(output_path, os.getcwd()) if (output_text and os.path.exists(output_path)) else None,
-            "plots": [os.path.relpath(p, output_dir) for p in plots],
-            "inference": task_inference_escaped
-        })
+        sections_data.append(
+            {
+                "name": name_no_ext,
+                "m_file": base_name,
+                "title": task_title_escaped,
+                "has_output": bool(output_text),
+                "output_path_rel": (
+                    os.path.relpath(output_path, os.getcwd())
+                    if (output_text and os.path.exists(output_path))
+                    else None
+                ),
+                "plots": [os.path.relpath(p, output_dir) for p in plots],
+                "inference": task_inference_escaped,
+            }
+        )
 
     # Generate LaTeX content
     esc_name = latex_escape(student_name)
@@ -442,7 +487,9 @@ def main():
         tex_content.append(r"\begin{document}")
 
         tex_content.append(r"\noindent")
-        tex_content.append(f"\\textbf{{Name:}} {esc_name} \\hfill \\textbf{{Roll No:}} {esc_roll}\\\\")
+        tex_content.append(
+            f"\\textbf{{Name:}} {esc_name} \\hfill \\textbf{{Roll No:}} {esc_roll}\\\\"
+        )
         tex_content.append(r"\noindent\rule{\textwidth}{0.4pt}")
         tex_content.append(r"\vspace{-0.3cm}")
         tex_content.append(r"\begin{center}")
@@ -457,40 +504,49 @@ def main():
 
             # Include code with dynamic listing basicstyle font size based on scale
             tex_content.append(r"\noindent\textbf{Source Code:}")
-            m_file_path = os.path.join(matlab_dir, sec['m_file'])
+            m_file_path = os.path.join(matlab_dir, sec["m_file"])
             rel_m_file = os.path.relpath(m_file_path, output_dir)
             sec_font_size = r"\scriptsize" if sec_scale >= 0.9 else r"\tiny"
-            tex_content.append(f"\\lstinputlisting[basicstyle=\\ttfamily{sec_font_size}]{{{rel_m_file}}}")
+            tex_content.append(
+                f"\\lstinputlisting[basicstyle=\\ttfamily{sec_font_size}]{{{rel_m_file}}}"
+            )
             tex_content.append(r"\vspace{0.05cm}")
 
             # Code output and plots block
-            if sec['has_output'] or sec['plots']:
-                if sec['has_output']:
+            if sec["has_output"] or sec["plots"]:
+                if sec["has_output"]:
                     tex_content.append(r"\noindent\textbf{Console Output:}")
                     tex_content.append(r"\begin{verbatim}")
-                    output_path_to_read = sec['output_path_rel']
-                    with open(output_path_to_read, 'r', encoding='utf-8', errors='ignore') as f:
+                    output_path_to_read = sec["output_path_rel"]
+                    with open(
+                        output_path_to_read, "r", encoding="utf-8", errors="ignore"
+                    ) as f:
                         lines = f.readlines()
                         if len(lines) > 20:
-                            tex_content.append("".join(lines[:20]) + "\n... [Output Truncated to Save Space] ...")
+                            tex_content.append(
+                                "".join(lines[:20])
+                                + "\n... [Output Truncated to Save Space] ..."
+                            )
                         else:
                             tex_content.append("".join(lines))
                     tex_content.append(r"\end{verbatim}")
                     tex_content.append(r"\vspace{-0.2cm}")
 
                 # Show plots/screenshots side-by-side to save space
-                if sec['plots']:
+                if sec["plots"]:
                     tex_content.append(r"\noindent\textbf{Plots:}")
                     tex_content.append(r"\begin{figure}[H]")
                     tex_content.append(r"    \centering")
 
-                    num_plots = len(sec['plots'])
+                    num_plots = len(sec["plots"])
 
                     if layout_style == "vertical":
                         # Stack all plots vertically
                         width = min(0.95, round(0.65 * sec_scale, 2))
-                        for p_idx, plot_path in enumerate(sec['plots']):
-                            tex_content.append(f"    \\includegraphics[width={width}\\textwidth]{{{{{plot_path}}}}}")
+                        for p_idx, plot_path in enumerate(sec["plots"]):
+                            tex_content.append(
+                                f"    \\includegraphics[width={width}\\textwidth]{{{{{plot_path}}}}}"
+                            )
                             if p_idx + 1 < num_plots:
                                 tex_content.append(r"    \\")
                                 tex_content.append(r"    \vspace{0.1cm}")
@@ -500,24 +556,32 @@ def main():
                         minipage_width = min(0.49, round(0.48 * sec_scale, 2))
                         if num_plots == 1:
                             tex_content.append(
-                                f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][0]}}}}}")
+                                f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][0]}}}}}"
+                            )
                         else:
                             for idx in range(0, num_plots, 2):
                                 if idx + 1 < num_plots:
-                                    tex_content.append(f"    \\begin{{minipage}}[b]{{{minipage_width}\\textwidth}}")
+                                    tex_content.append(
+                                        f"    \\begin{{minipage}}[b]{{{minipage_width}\\textwidth}}"
+                                    )
                                     tex_content.append(r"        \centering")
                                     tex_content.append(
-                                        f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx]}}}}}")
+                                        f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx]}}}}}"
+                                    )
                                     tex_content.append(r"    \end{minipage}")
                                     tex_content.append(r"    \hfill")
-                                    tex_content.append(f"    \\begin{{minipage}}[b]{{{minipage_width}\\textwidth}}")
+                                    tex_content.append(
+                                        f"    \\begin{{minipage}}[b]{{{minipage_width}\\textwidth}}"
+                                    )
                                     tex_content.append(r"        \centering")
                                     tex_content.append(
-                                        f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx + 1]}}}}}")
+                                        f"        \\includegraphics[width=\\textwidth]{{{{{sec['plots'][idx + 1]}}}}}"
+                                    )
                                     tex_content.append(r"    \end{minipage}")
                                 else:
                                     tex_content.append(
-                                        f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][idx]}}}}}")
+                                        f"    \\includegraphics[width={single_width}\\textwidth]{{{{{sec['plots'][idx]}}}}}"
+                                    )
 
                                 if idx + 2 < num_plots:
                                     tex_content.append(r"    \\")
@@ -526,7 +590,7 @@ def main():
                     tex_content.append(r"\end{figure}")
 
             # Show task-specific inference
-            if sec['inference']:
+            if sec["inference"]:
                 tex_content.append(r"\vspace{0.2cm}")
                 tex_content.append(r"\noindent\textbf{Inference:}")
                 tex_content.append(f"\n{sec['inference']}")
@@ -549,7 +613,7 @@ def main():
         log_path = os.path.join(output_dir, "report.log")
         if os.path.exists(log_path):
             try:
-                with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                     log_text = f.read()
                     m = re.search(r"Output written on .*? \((\d+) page", log_text)
                     if m:
@@ -565,12 +629,17 @@ def main():
     # 1. Determine baseline page count for vertical layout (at scale 0.5)
     print("Testing vertical layout baseline (scale 0.5)...")
     baseline_vertical_tex = generate_tex_code(0.5, "vertical")
-    with open(tex_path, "w", encoding='utf-8') as f:
+    with open(tex_path, "w", encoding="utf-8") as f:
         f.write(baseline_vertical_tex)
     v_target_pages = 999
     try:
-        subprocess.run(["pdflatex", "-interaction=nonstopmode", "report.tex"], cwd=output_dir,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+            cwd=output_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
         v_target_pages = get_pdf_page_count()
         print(f"Vertical baseline pages: {v_target_pages}")
     except Exception as e:
@@ -579,12 +648,17 @@ def main():
     # 2. Determine baseline page count for grid layout (at scale 0.5)
     print("Testing grid layout baseline (scale 0.5)...")
     baseline_grid_tex = generate_tex_code(0.5, "grid")
-    with open(tex_path, "w", encoding='utf-8') as f:
+    with open(tex_path, "w", encoding="utf-8") as f:
         f.write(baseline_grid_tex)
     g_target_pages = 999
     try:
-        subprocess.run(["pdflatex", "-interaction=nonstopmode", "report.tex"], cwd=output_dir,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", "report.tex"],
+            cwd=output_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
         g_target_pages = get_pdf_page_count()
         print(f"Grid baseline pages: {g_target_pages}")
     except Exception as e:
@@ -600,7 +674,7 @@ def main():
         mid = round((v_low + v_high) / 2, 2)
         print(f"Testing vertical scale {mid}...", end="", flush=True)
         tex_code = generate_tex_code(mid, "vertical")
-        with open(tex_path, "w", encoding='utf-8') as f:
+        with open(tex_path, "w", encoding="utf-8") as f:
             f.write(tex_code)
         try:
             subprocess.run(
@@ -608,7 +682,7 @@ def main():
                 cwd=output_dir,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                check=True
+                check=True,
             )
             pages = get_pdf_page_count()
             print(f" resulting page count: {pages}")
@@ -631,7 +705,7 @@ def main():
         mid = round((g_low + g_high) / 2, 2)
         print(f"Testing grid scale {mid}...", end="", flush=True)
         tex_code = generate_tex_code(mid, "grid")
-        with open(tex_path, "w", encoding='utf-8') as f:
+        with open(tex_path, "w", encoding="utf-8") as f:
             f.write(tex_code)
         try:
             subprocess.run(
@@ -639,7 +713,7 @@ def main():
                 cwd=output_dir,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                check=True
+                check=True,
             )
             pages = get_pdf_page_count()
             print(f" resulting page count: {pages}")
@@ -659,11 +733,15 @@ def main():
     if v_target_pages < g_target_pages:
         selected_layout = "vertical"
         optimal_scale = v_opt_scale
-        print(f"Selected Vertical layout: page count {v_target_pages} is lower than Grid page count {g_target_pages}.")
+        print(
+            f"Selected Vertical layout: page count {v_target_pages} is lower than Grid page count {g_target_pages}."
+        )
     elif g_target_pages < v_target_pages:
         selected_layout = "grid"
         optimal_scale = g_opt_scale
-        print(f"Selected Grid layout: page count {g_target_pages} is lower than Vertical page count {v_target_pages}.")
+        print(
+            f"Selected Grid layout: page count {g_target_pages} is lower than Vertical page count {v_target_pages}."
+        )
     else:
         # Page counts are equal, compare image metrics to maximize screen coverage
         if v_metric >= g_metric:
@@ -676,7 +754,8 @@ def main():
                         2)} vs {
                     round(
                         g_metric,
-                        2)}).")
+                        2)})."
+            )
         else:
             selected_layout = "grid"
             optimal_scale = g_opt_scale
@@ -687,14 +766,21 @@ def main():
                         2)} vs {
                     round(
                         v_metric,
-                        2)}).")
+                        2)})."
+            )
 
     target_pages = v_target_pages if selected_layout == "vertical" else g_target_pages
     section_scales = [optimal_scale] * len(sections_data)
 
-    print(f"\nRefining section scales individually (Page-Fill Optimization) for target count of {target_pages} pages...")
+    print(
+        f"\nRefining section scales individually (Page-Fill Optimization) for target count of {target_pages} pages..."
+    )
     for idx in range(len(sections_data)):
-        print(f"Optimizing Section {idx + 1} ({sections_data[idx]['m_file']})...", end="", flush=True)
+        print(
+            f"Optimizing Section {idx + 1} ({sections_data[idx]['m_file']})...",
+            end="",
+            flush=True,
+        )
         # Binary search the optimal scale for this specific section in the range [optimal_scale, 1.8]
         low_s = optimal_scale
         high_s = 1.8
@@ -707,7 +793,7 @@ def main():
             test_scales[idx] = mid_s
 
             tex_code = generate_tex_code(test_scales, selected_layout)
-            with open(tex_path, "w", encoding='utf-8') as f:
+            with open(tex_path, "w", encoding="utf-8") as f:
                 f.write(tex_code)
 
             try:
@@ -716,7 +802,7 @@ def main():
                     cwd=output_dir,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    check=True
+                    check=True,
                 )
                 pages = get_pdf_page_count()
                 if pages <= target_pages:
@@ -735,7 +821,7 @@ def main():
 
     # Generate final optimized LaTeX content
     optimal_tex = generate_tex_code(section_scales, selected_layout)
-    with open(tex_path, "w", encoding='utf-8') as f:
+    with open(tex_path, "w", encoding="utf-8") as f:
         f.write(optimal_tex)
 
     print("\nCompiling final optimized PDF report...")
@@ -746,7 +832,7 @@ def main():
                 cwd=output_dir,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                check=True
+                check=True,
             )
         print(f"Compiled report.pdf inside {output_dir} successfully!")
 
@@ -758,7 +844,7 @@ def main():
                 except Exception:
                     pass
     except Exception as e:
-        print(f"Error compiling final LaTeX report: {str(e)}")
+        print(f"Error compiling final LaTeX report: {e!s}")
         sys.exit(1)
 
 
