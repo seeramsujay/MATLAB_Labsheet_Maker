@@ -1,4 +1,21 @@
-# ⚡ DSP Lab Automation Engine
+<p align="center">
+  <img src="assets/logo.svg" alt="MATLAB_Labsheet_Maker Logo" width="130" height="130" />
+</p>
+
+<h1 align="center">DSP Lab Automation Engine</h1>
+
+<p align="center">
+  <strong>Automated MATLAB & GNU Octave DSP Experiment Runner, Vector Plot Extractor & LaTeX Report Generator</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Language-Python%20%7C%20Octave-blue?style=flat-square" alt="Language" />
+  <img src="https://img.shields.io/badge/Format-LaTeX%20%7C%20PDF-brightgreen?style=flat-square" alt="Format" />
+  <img src="https://img.shields.io/badge/Status-Maintained-success?style=flat-square" alt="Status" />
+  <img src="https://img.shields.io/badge/License-Protected-blue?style=flat-square" alt="License" />
+</p>
+
+---
 
 A clean, reproducible workspace designed to automate the process of executing Digital Signal Processing (DSP) lab sheets, capturing graphical results, and compiling a simple, compact 1st-year BTech student style LaTeX report with student credentials.
 
@@ -110,4 +127,3 @@ To process a new lab sheet:
 2. Clear old `.m` files in `src/` and paste/write the new ones.
 3. Run `python3 generate_report.py`.
 4. Your new `output/report.pdf` will be compiled immediately with your name and roll number.
-
